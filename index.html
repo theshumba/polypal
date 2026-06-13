@@ -10,17 +10,17 @@
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 <style>
   :root{
-    /* Sobremesa — sun-baked Mediterranean studio */
-    --bg:#15110c; --bg-2:#1b1610;
-    --panel:#1f190f; --panel2:#291f14; --panel3:#332617;
-    --line:#3b2e1d; --line-soft:#2c2216;
-    --txt:#f7f0e2; --txt-dim:#e1d3bb; --muted:#a9967c;
-    --accent:#e8704a; --accent-deep:#cc5630; --accent-soft:rgba(232,112,74,.15);
-    --gold:#f0b34a; --gold-deep:#d6962c; --gold-soft:rgba(240,179,74,.15);
-    --them:#2a2116;
-    --err:#ff7a6b; --spell:#f3b551; --punct:#73b8ff; --ok:#5fcf93;
+    /* Medianoche — midnight violet studio */
+    --bg:#0b0813; --bg-2:#110d20;
+    --panel:#15102a; --panel2:#1d1638; --panel3:#281e4c;
+    --line:#352a55; --line-soft:#241c3c;
+    --txt:#f1edfb; --txt-dim:#d5ccf2; --muted:#9a8dc6;
+    --accent:#9d5cff; --accent-deep:#7c3aed; --accent-soft:rgba(157,92,255,.18);
+    --gold:#e879f9; --gold-deep:#c026d3; --gold-soft:rgba(232,121,249,.16);
+    --them:#1f1838;
+    --err:#ff7a93; --spell:#f3b551; --punct:#73b8ff; --ok:#5fcf93;
     --radius:18px; --radius-lg:26px; --radius-sm:11px;
-    --shadow:0 24px 60px -18px rgba(0,0,0,.7), 0 4px 14px -6px rgba(0,0,0,.5);
+    --shadow:0 24px 60px -18px rgba(0,0,0,.78), 0 4px 16px -6px rgba(124,58,237,.25);
     --f-display:'Fraunces',Georgia,'Times New Roman',serif;
     --f-body:'Hanken Grotesk',-apple-system,BlinkMacSystemFont,sans-serif;
   }
@@ -29,8 +29,8 @@
   body{margin:0;font-family:var(--f-body);font-size:15px;line-height:1.5;
     color:var(--txt);height:100vh;overflow:hidden;-webkit-font-smoothing:antialiased;
     background:
-      radial-gradient(115% 75% at 8% -10%, rgba(240,179,74,.11), transparent 52%),
-      radial-gradient(120% 95% at 105% 110%, rgba(232,112,74,.14), transparent 55%),
+      radial-gradient(115% 75% at 8% -10%, rgba(232,121,249,.13), transparent 52%),
+      radial-gradient(120% 95% at 105% 110%, rgba(157,92,255,.18), transparent 55%),
       var(--bg);}
   /* film-grain atmosphere */
   body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.05;
@@ -69,16 +69,16 @@
     color:var(--muted);margin:20px 0 7px}
   .field{width:100%;padding:14px 15px;border-radius:var(--radius-sm);background:var(--bg-2);
     border:1px solid var(--line);color:var(--txt);transition:border-color .2s, box-shadow .2s;outline:none}
-  .field::placeholder{color:#7d6c57}
+  .field::placeholder{color:#6b5f90}
   .field:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
   select.field{appearance:none;cursor:pointer;
-    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23a9967c' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239a8dc6' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
     background-repeat:no-repeat;background-position:right 15px center;padding-right:38px}
   .cta{width:100%;margin-top:24px;padding:17px;font-size:16px;font-weight:700;color:#fff;
     background:linear-gradient(180deg,var(--accent),var(--accent-deep));
-    box-shadow:0 10px 26px -10px rgba(232,112,74,.7), inset 0 1px 0 rgba(255,255,255,.18);
+    box-shadow:0 10px 28px -10px rgba(157,92,255,.75), inset 0 1px 0 rgba(255,255,255,.18);
     display:flex;align-items:center;justify-content:center;gap:9px}
-  .cta:hover{box-shadow:0 14px 34px -10px rgba(232,112,74,.85), inset 0 1px 0 rgba(255,255,255,.22);
+  .cta:hover{box-shadow:0 16px 38px -10px rgba(157,92,255,.9), inset 0 1px 0 rgba(255,255,255,.22);
     transform:translateY(-1px)}
   .cta:active{transform:translateY(0)}
   .or{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:12px;
@@ -101,7 +101,7 @@
   #app{display:none;position:relative;z-index:1;height:100vh;
     grid-template-columns:1fr 348px;grid-template-rows:auto 1fr auto}
   header{grid-column:1/3;display:flex;align-items:center;gap:14px;padding:13px 20px;
-    background:linear-gradient(180deg,var(--panel),rgba(31,25,15,.86));
+    background:linear-gradient(180deg,var(--panel),rgba(21,16,42,.86));
     backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
   header .logo{font-family:var(--f-display);font-weight:900;font-size:23px;letter-spacing:-.03em}
   header .logo span{color:var(--accent)}
@@ -123,42 +123,42 @@
   #chatcol{grid-row:2/3;display:flex;flex-direction:column;overflow:hidden}
 
   /* video stage */
-  #stage{position:relative;background:radial-gradient(120% 120% at 50% 0,#1a140d,#070504);
+  #stage{position:relative;background:radial-gradient(120% 120% at 50% 0,#191035,#06040f);
     height:44vh;min-height:210px;flex:none;overflow:hidden;border-bottom:1px solid var(--line);
     display:flex;align-items:center;justify-content:center}
-  #remoteVideo{width:100%;height:100%;object-fit:cover;background:#06040a}
+  #remoteVideo{width:100%;height:100%;object-fit:cover;background:#070512}
   #remoteVideo.empty{display:none}
   #stageMsg{position:absolute;color:var(--txt-dim);font-size:14.5px;font-weight:500;text-align:center;
     padding:24px;display:flex;flex-direction:column;align-items:center;gap:18px;letter-spacing:.01em}
   #stageMsg::before{content:'';width:14px;height:14px;border-radius:50%;background:var(--accent);
     box-shadow:0 0 0 0 var(--accent-soft);animation:ripple 1.7s ease-out infinite}
   #localWrap{position:absolute;right:14px;bottom:14px;width:150px;height:106px;border-radius:14px;
-    overflow:hidden;border:1.5px solid rgba(247,240,226,.28);background:#000;
+    overflow:hidden;border:1.5px solid rgba(236,232,255,.3);background:#000;
     box-shadow:0 10px 28px rgba(0,0,0,.6)}
   #localVideo{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
   .local-tag{position:absolute;left:8px;bottom:7px;font-size:10px;font-weight:700;letter-spacing:.08em;
     color:#fff;background:rgba(0,0,0,.45);padding:2px 8px;border-radius:7px;backdrop-filter:blur(3px)}
-  #remoteName{position:absolute;left:14px;top:14px;background:rgba(10,7,4,.55);backdrop-filter:blur(6px);
-    padding:6px 12px;border-radius:9px;font-size:13px;font-weight:600;border:1px solid rgba(247,240,226,.12)}
+  #remoteName{position:absolute;left:14px;top:14px;background:rgba(11,7,22,.6);backdrop-filter:blur(6px);
+    padding:6px 12px;border-radius:9px;font-size:13px;font-weight:600;border:1px solid rgba(236,232,255,.12)}
   .vbar{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);display:flex;gap:11px;
-    padding:7px;background:rgba(12,9,5,.42);backdrop-filter:blur(10px);border-radius:999px;
-    border:1px solid rgba(247,240,226,.1)}
-  .vbtn{width:48px;height:48px;border-radius:50%;background:rgba(45,35,22,.9);
-    border:1px solid rgba(247,240,226,.14);color:#fff;font-size:19px;
+    padding:7px;background:rgba(14,9,28,.5);backdrop-filter:blur(10px);border-radius:999px;
+    border:1px solid rgba(236,232,255,.1)}
+  .vbtn{width:48px;height:48px;border-radius:50%;background:rgba(41,30,72,.9);
+    border:1px solid rgba(236,232,255,.14);color:#fff;font-size:19px;
     display:flex;align-items:center;justify-content:center}
   .vbtn:hover{background:var(--panel3);border-color:var(--gold)}
   .vbtn.off{background:linear-gradient(180deg,var(--accent),var(--accent-deep));border-color:transparent}
   .vbtn.next{width:auto;border-radius:999px;padding:0 20px;font-weight:700;
     background:linear-gradient(180deg,var(--accent),var(--accent-deep));font-size:14px;border-color:transparent;
-    box-shadow:0 8px 20px -8px rgba(232,112,74,.7)}
-  .vbtn.next:hover{filter:brightness(1.06)}
+    box-shadow:0 8px 22px -8px rgba(157,92,255,.8)}
+  .vbtn.next:hover{filter:brightness(1.08)}
 
   #messages{flex:1;overflow-y:auto;padding:20px 20px 8px;display:flex;flex-direction:column;gap:13px}
   .msg{max-width:80%;padding:11px 15px;border-radius:18px;line-height:1.5;word-wrap:break-word;
     position:relative;font-size:14.5px;animation:pop .26s cubic-bezier(.2,.8,.2,1) both}
   .msg.me{align-self:flex-end;color:#fff;border-bottom-right-radius:5px;
     background:linear-gradient(165deg,var(--accent),var(--accent-deep));
-    box-shadow:0 8px 18px -10px rgba(232,112,74,.6)}
+    box-shadow:0 8px 20px -10px rgba(157,92,255,.65)}
   .msg.them{align-self:flex-start;background:var(--them);border:1px solid var(--line);border-bottom-left-radius:5px}
   .msg .who{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;opacity:.65;margin-bottom:4px}
   .msg.sys{align-self:center;background:transparent;color:var(--muted);font-size:12px;font-style:italic;
@@ -181,7 +181,7 @@
   .hl.spell{text-decoration-color:var(--spell);background:rgba(243,181,81,.18)}
   .hl.punct{text-decoration-color:var(--punct);background:rgba(115,184,255,.18)}
   .corr{margin-top:8px;font-size:12px;display:flex;flex-wrap:wrap;gap:6px}
-  .chip{background:rgba(0,0,0,.28);border:1px solid rgba(247,240,226,.1);border-radius:8px;padding:3px 9px}
+  .chip{background:rgba(0,0,0,.3);border:1px solid rgba(236,232,255,.12);border-radius:8px;padding:3px 9px}
   .chip b{color:var(--ok)}
   .perfect{font-size:11px;font-weight:600;color:var(--ok);margin-top:5px;opacity:.92}
 
@@ -189,11 +189,11 @@
     border-top:1px solid var(--line);background:var(--panel)}
   #composer input{flex:1;padding:15px 16px;border-radius:14px;background:var(--bg-2);
     border:1px solid var(--line);color:var(--txt);outline:none;transition:border-color .2s, box-shadow .2s}
-  #composer input::placeholder{color:#7d6c57}
+  #composer input::placeholder{color:#6b5f90}
   #composer input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
   #send{background:linear-gradient(180deg,var(--accent),var(--accent-deep));color:#fff;
     padding:0 24px;font-weight:700;display:flex;align-items:center;gap:8px;
-    box-shadow:0 8px 20px -10px rgba(232,112,74,.7)}
+    box-shadow:0 8px 22px -10px rgba(157,92,255,.8)}
   #send:hover{filter:brightness(1.06)}
   #typing{grid-column:1/2;padding:0 20px 7px;color:var(--gold);font-size:12px;font-style:italic;height:18px}
 
@@ -387,6 +387,19 @@ const presenceTopic='polypal/v1/presence';
 const online=new Map();          // cid -> lastTs of everyone live on the app
 const PRESENCE_TIMEOUT=16000;    // > 3 missed 5s presence beats
 
+// Level-aware matchmaking. We PREFER a same-level partner but never get stuck:
+// the acceptable gap widens the longer either peer has waited (graduated fallback).
+const LEVELS=['A1','A2','B1','B2','C1','C2'];
+const LEVEL_EXACT_MS=8000;       // first 8s seeking: same level only
+const LEVEL_NEAR_MS=18000;       // 8–18s: ±1 band; after 18s: match anyone
+let seekStartedAt=0;             // when the current seek began (for the fallback clock)
+let partnerLevel='';             // matched partner's level, for the UI
+function levelCode(s){const m=(s||'').match(/[ABC][12]/i);return m?m[0].toUpperCase():'';}
+function levelIndex(s){return LEVELS.indexOf(levelCode(s));}
+// CEFR distance in bands; unknown/missing level is a wildcard (never blocks a match).
+function levelDistance(a,b){const ia=levelIndex(a),ib=levelIndex(b);if(ia<0||ib<0)return 0;return Math.abs(ia-ib);}
+function allowedBand(waitMs){if(waitMs<LEVEL_EXACT_MS)return 0;if(waitMs<LEVEL_NEAR_MS)return 1;return Infinity;}
+
 // media / webrtc
 let localStream=null, pc=null, micOn=true, camOn=true;
 let partnerInRoom=false, pendingIce=[], reqOfferTimer=null, helloTimer=null, callConnected=false;
@@ -513,12 +526,16 @@ function pubLobby(obj){if(client&&client.connected)client.publish(lobbyTopic,JSO
 // ---- Random matchmaking lobby ----
 function startSeeking(){
   clearInterval(seekTimer);   // never stack two seek loops
-  matched=false;seeking=true;partner=null;
+  matched=false;seeking=true;partner=null;partnerLevel='';
+  seekStartedAt=Date.now();
   setStage(null,'Looking for a partner…');
   client.subscribe(lobbyTopic);
-  pubLobby({type:'seek'});
-  seekTimer=setInterval(()=>{if(seeking)pubLobby({type:'seek'});},2000);
+  pubSeek();
+  seekTimer=setInterval(()=>{if(seeking)pubSeek();},2000);
 }
+// Broadcast our level and how long we've waited so the initiator can apply the
+// graduated band (it widens with whichever peer has waited longer).
+function pubSeek(){pubLobby({type:'seek',level:me.level,waited:Date.now()-seekStartedAt});}
 let seekTimer;
 function handleLobby(m){
   if(!seeking||matched)return;
@@ -526,11 +543,17 @@ function handleLobby(m){
   if(m.type==='seek'){
     // deterministic: lower cid initiates the match
     if(cid<m.cid){
+      // Prefer a close level; the band widens with the longer of the two waits,
+      // so an isolated/odd-level-out seeker still gets paired within ~18s.
+      const wait=Math.max(Date.now()-seekStartedAt, m.waited||0);
+      if(levelDistance(me.level,m.level)>allowedBand(wait))return;
+      partnerLevel=m.level||'';
       const r=[cid,m.cid].sort().join('-');
-      pubLobby({type:'match',a:cid,b:m.cid,room:r});
+      pubLobby({type:'match',a:cid,b:m.cid,room:r,alevel:me.level});
       acceptMatch('polypal/v1/R-'+r,m.cid);
     }
   }else if(m.type==='match'&&m.b===cid){
+    partnerLevel=m.alevel||'';   // initiator told us their level
     acceptMatch('polypal/v1/R-'+m.room,m.a);
   }
 }
@@ -576,7 +599,8 @@ function joinRoom(t){
   topic=t;
   partnerInRoom=false; callConnected=false; pendingIce=[];
   client.subscribe(topic,()=>{
-    sysMsg(mode==='random'?'Connected! Say hello in Spanish 👋':`You're in this room. Say hello in Spanish! 👋`);
+    const lvl=levelCode(partnerLevel);
+    sysMsg(mode==='random'?(lvl?`Matched with a ${lvl} partner — say hello in Spanish 👋`:'Connected! Say hello in Spanish 👋'):`You're in this room. Say hello in Spanish! 👋`);
     // Re-announce a few times so a partner who subscribed late still hears us.
     let n=0; clearInterval(helloTimer);
     const announce=()=>{ pub({type:'hello'}); if(++n>=5||callConnected) clearInterval(helloTimer); };
@@ -692,7 +716,7 @@ function setupPC(){
     rv.srcObject=e.streams[0];
     rv.classList.remove('empty');   // un-hide BEFORE play() (display:none throttles playback)
     document.getElementById('stageMsg').style.display='none';
-    const pn=peers.get(partner);setRemoteName(pn&&pn.name?pn.name:'Partner');
+    const pn=peers.get(partner);const nm=pn&&pn.name?pn.name:'Partner';const lc=levelCode(partnerLevel);setRemoteName(lc?`${nm} · ${lc}`:nm);
     attemptPlay(rv);
     if(e.track)e.track.onunmute=()=>attemptPlay(rv);
     rv.onloadedmetadata=()=>attemptPlay(rv);
@@ -730,7 +754,7 @@ function showUnmute(){
   const stage=document.getElementById('stage');
   const b=document.createElement('button');
   b.textContent='🔇 Tap to unmute';
-  b.style.cssText='position:absolute;left:50%;top:14px;transform:translateX(-50%);z-index:6;background:rgba(232,112,74,.95);color:#fff;border:none;border-radius:999px;padding:9px 18px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;box-shadow:0 8px 20px -8px rgba(232,112,74,.7)';
+  b.style.cssText='position:absolute;left:50%;top:14px;transform:translateX(-50%);z-index:6;background:rgba(157,92,255,.95);color:#fff;border:none;border-radius:999px;padding:9px 18px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;box-shadow:0 8px 20px -8px rgba(157,92,255,.7)';
   b.onclick=()=>{const rv=document.getElementById('remoteVideo');rv.muted=false;rv.play().catch(()=>{});b.remove();};
   stage.appendChild(b);
 }
