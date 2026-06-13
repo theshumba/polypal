@@ -377,10 +377,16 @@ let stats={msgs:0,errs:0},allCorrections=[];
 const peers=new Map();           // cid -> {name,last}
 let partner=null;                // the other peer's cid (1-to-1 video)
 let matched=false, seeking=false;
-let lastPartnerBeat=0;           // when we last heard ANYTHING from `partner`
 const recentLeft=new Map();      // cid -> ts; peers we just left, to avoid snap-back
-const PARTNER_TIMEOUT=14000;     // > 2 missed 5s heartbeats: partner is gone
 const RELEASE_COOLDOWN=8000;     // don't instantly re-match someone we just left
+// Recovery is driven by the REAL WebRTC connection state, never by broker beats
+// (QoS0 beats drop on the public broker and would falsely kill a healthy call).
+let matchedAt=0;                 // when the current match was accepted
+let everConnected=false;         // has this call ever reached pc.connectionState==='connected'?
+let pcLostSince=0;               // when a previously-connected call first went un-connected
+const NOSHOW_MS=10000;           // matched but partner never appeared in the room → re-seek
+const CONNECT_MS=25000;          // partner present but media never came up (slow TURN/NAT) → re-seek
+const RECOVERY_MS=12000;         // was connected, WebRTC down this long despite ICE restart → re-seek
 
 // App-wide presence: every client (any mode, room, or idle) beats on one shared
 // topic so the badge can show everyone live on the app, not just this room.
@@ -467,21 +473,26 @@ async function enter(kind){
 
 async function ensureMedia(){
   if(localStream)return true;
-  try{
-    // Explicitly request the browser's audio processing. With a bare `audio:true`,
-    // echo cancellation isn't guaranteed to engage — which on laptop speakers turns
-    // into a runaway feedback loop (their voice → your speaker → your mic → back).
-    localStream=await navigator.mediaDevices.getUserMedia({
-      video:{width:640,height:480},
-      audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}
-    });
-    document.getElementById('localVideo').srcObject=localStream;
-    return true;
-  }catch(e){
-    sysMsg('Camera/mic not available — continuing with text + the AI teacher only.');
-    document.getElementById('localWrap').style.display='none';
-    return false;
+  // Explicitly request the browser's audio processing. With a bare `audio:true`,
+  // echo cancellation isn't guaranteed to engage — which on laptop speakers turns
+  // into a runaway feedback loop (their voice → your speaker → your mic → back).
+  // But a stricter audio object can be rejected on some devices, so if it fails we
+  // retry with plain audio before giving up — never lose cam+mic over the AEC hint.
+  const tries=[
+    {video:{width:640,height:480},audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}},
+    {video:{width:640,height:480},audio:true},
+    {video:true,audio:true}
+  ];
+  for(const constraints of tries){
+    try{
+      localStream=await navigator.mediaDevices.getUserMedia(constraints);
+      document.getElementById('localVideo').srcObject=localStream;
+      return true;
+    }catch(e){/* try the next, more permissive, constraint set */}
   }
+  sysMsg('Camera/mic not available — continuing with text + the AI teacher only.');
+  document.getElementById('localWrap').style.display='none';
+  return false;
 }
 
 function connectBroker(onReady){
@@ -497,7 +508,6 @@ function connectBroker(onReady){
   client.on('message',(t,payload)=>{
     let m;try{m=JSON.parse(payload.toString());}catch{return;}
     if(m.cid===cid)return;
-    if(m.cid===partner)lastPartnerBeat=Date.now();   // any packet (incl. presence) = proof of life
     if(t===presenceTopic){handlePresence(m);return;}
     if(t===lobbyTopic)handleLobby(m); else handleRoom(m);
   });
@@ -570,9 +580,8 @@ function acceptMatch(roomTopic,otherCid){
   matched=true;seeking=false;clearInterval(seekTimer);
   client.unsubscribe(lobbyTopic);
   partner=otherCid;
-  // Start the liveness clock now: if the matched peer never shows (lobby race,
-  // dropped hello), the watchdog times out and re-queues us instead of hanging.
-  lastPartnerBeat=Date.now();
+  // Fresh call: start the establishment clock and clear any prior call state.
+  matchedAt=Date.now();everConnected=false;pcLostSince=0;
   joinRoom(roomTopic);
 }
 // Have we just left this peer? Skip them briefly so "Next" doesn't snap us
@@ -583,11 +592,24 @@ function recentlyLeft(c){
   if(Date.now()-t>RELEASE_COOLDOWN){recentLeft.delete(c);return false;}
   return true;
 }
-// Random mode only: if the partner goes silent (crash, network drop, lost `bye`,
-// or a match that never connected) recover by re-queueing instead of freezing.
+// Random mode only. Recover from a genuinely dead partner WITHOUT ever killing a
+// healthy call: a connected call is judged solely by the real WebRTC state, never
+// by broker heartbeats (which drop on the public broker and used to false-trigger).
 function partnerWatch(){
   if(mode!=='random'||!matched||!partner)return;
-  if(Date.now()-lastPartnerBeat>PARTNER_TIMEOUT)onPartnerLost();
+  const now=Date.now();
+  if(pc&&pc.connectionState==='connected'){pcLostSince=0;return;}   // healthy — hands off
+  if(everConnected){
+    // We had a live call and WebRTC is no longer connected. Give ICE restart a
+    // grace window to self-heal a blip; only re-seek if it stays down.
+    if(!pcLostSince)pcLostSince=now;
+    if(now-pcLostSince>RECOVERY_MS)onPartnerLost();
+    return;
+  }
+  // First-time establishment. Distinguish a no-show (partner never even appeared
+  // in the room — e.g. a lobby race) from a slow-but-real connection.
+  if(!partnerInRoom){ if(now-matchedAt>NOSHOW_MS)onPartnerLost(); }
+  else if(now-matchedAt>CONNECT_MS)onPartnerLost();
 }
 function onPartnerLost(){
   sysMsg('Partner disconnected — finding someone new…');
@@ -734,7 +756,7 @@ function setupPC(){
   pc.onconnectionstatechange=()=>{
     const s=pc.connectionState;
     if(s==='connected'){
-      callConnected=true;
+      callConnected=true;everConnected=true;pcLostSince=0;
       clearInterval(reqOfferTimer);reqOfferTimer=null;
       clearInterval(helloTimer);helloTimer=null;
     }else if(s==='failed'){
