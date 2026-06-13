@@ -191,6 +191,7 @@
     border:1px solid var(--line);color:var(--txt);outline:none;transition:border-color .2s, box-shadow .2s}
   #composer input::placeholder{color:#6b5f90}
   #composer input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  #composer input:disabled,#composer button:disabled{opacity:.4;cursor:not-allowed;filter:grayscale(.5)}
   #send{background:linear-gradient(180deg,var(--accent),var(--accent-deep));color:#fff;
     padding:0 24px;font-weight:700;display:flex;align-items:center;gap:8px;
     box-shadow:0 8px 22px -10px rgba(157,92,255,.8)}
@@ -305,9 +306,9 @@
   </div>
   <div id="typing"></div>
   <div id="composer">
-    <input id="text" placeholder="Type in Spanish…" autocomplete="off"
+    <input id="text" placeholder="Waiting for a partner…" autocomplete="off" disabled
       oninput="onTyping()" onkeydown="if(event.key==='Enter')sendChat()" />
-    <button id="send" onclick="sendChat()">Enviar →</button>
+    <button id="send" onclick="sendChat()" disabled>Enviar →</button>
   </div>
 
   <aside>
@@ -467,7 +468,13 @@ async function enter(kind){
 async function ensureMedia(){
   if(localStream)return true;
   try{
-    localStream=await navigator.mediaDevices.getUserMedia({video:{width:640,height:480},audio:true});
+    // Explicitly request the browser's audio processing. With a bare `audio:true`,
+    // echo cancellation isn't guaranteed to engage — which on laptop speakers turns
+    // into a runaway feedback loop (their voice → your speaker → your mic → back).
+    localStream=await navigator.mediaDevices.getUserMedia({
+      video:{width:640,height:480},
+      audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}
+    });
     document.getElementById('localVideo').srcObject=localStream;
     return true;
   }catch(e){
@@ -528,6 +535,7 @@ function startSeeking(){
   clearInterval(seekTimer);   // never stack two seek loops
   matched=false;seeking=true;partner=null;partnerLevel='';
   seekStartedAt=Date.now();
+  setChatEnabled(false);
   setStage(null,'Looking for a partner…');
   client.subscribe(lobbyTopic);
   pubSeek();
@@ -598,6 +606,7 @@ function joinRoom(t){
   if(topic)client.unsubscribe(topic);
   topic=t;
   partnerInRoom=false; callConnected=false; pendingIce=[];
+  setChatEnabled(false);
   client.subscribe(topic,()=>{
     const lvl=levelCode(partnerLevel);
     sysMsg(mode==='random'?(lvl?`Matched with a ${lvl} partner — say hello in Spanish 👋`:'Connected! Say hello in Spanish 👋'):`You're in this room. Say hello in Spanish! 👋`);
@@ -648,6 +657,7 @@ function onPartnerHere(otherCid){
     if(!partner||otherCid!==partner)return;
   }
   partnerInRoom=true;
+  setChatEnabled(true);
   negotiate();
 }
 // Friend-room: partner = lowest-cid live peer other than self.
@@ -821,6 +831,7 @@ function teardownCall(){
   clearInterval(reqOfferTimer);reqOfferTimer=null;
   clearInterval(helloTimer);helloTimer=null;
   callConnected=false;partnerInRoom=false;pendingIce=[];
+  setChatEnabled(false);
   makingOffer=false;ignoreOffer=false;signalChain=Promise.resolve();
   if(pc){try{pc.close();}catch{}pc=null;}
   const rv=document.getElementById('remoteVideo');rv.srcObject=null;rv.classList.add('empty');setRemoteName('');
@@ -845,9 +856,16 @@ function nextStranger(){
 }
 
 // ================= Messaging =================
-function sendChat(){const inp=document.getElementById('text');const t=inp.value.trim();if(!t)return;addMessage(me.name,t,true);pub({type:'chat',text:t});inp.value='';}
+// Chat is only live while an actual partner is in the room — no talking to yourself.
+function setChatEnabled(on){
+  const inp=document.getElementById('text'),btn=document.getElementById('send');
+  inp.disabled=!on;btn.disabled=!on;
+  inp.placeholder=on?'Type in Spanish…':'Waiting for a partner…';
+  if(!on){document.getElementById('typing').textContent='';}
+}
+function sendChat(){if(!partnerInRoom)return;const inp=document.getElementById('text');const t=inp.value.trim();if(!t)return;addMessage(me.name,t,true);pub({type:'chat',text:t});inp.value='';}
 let typingTimer,lastTyping=0;
-function onTyping(){const now=Date.now();if(now-lastTyping>1200){lastTyping=now;pub({type:'typing'});}}
+function onTyping(){if(!partnerInRoom)return;const now=Date.now();if(now-lastTyping>1200){lastTyping=now;pub({type:'typing'});}}
 function showTyping(who){const el=document.getElementById('typing');el.textContent=`${who} is typing…`;clearTimeout(typingTimer);typingTimer=setTimeout(()=>el.textContent='',1500);}
 function clearMessages(){document.getElementById('messages').innerHTML='';}
 function addMessage(who,text,mine){
