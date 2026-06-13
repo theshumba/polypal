@@ -381,6 +381,12 @@ const recentLeft=new Map();      // cid -> ts; peers we just left, to avoid snap
 const PARTNER_TIMEOUT=14000;     // > 2 missed 5s heartbeats: partner is gone
 const RELEASE_COOLDOWN=8000;     // don't instantly re-match someone we just left
 
+// App-wide presence: every client (any mode, room, or idle) beats on one shared
+// topic so the badge can show everyone live on the app, not just this room.
+const presenceTopic='polypal/v1/presence';
+const online=new Map();          // cid -> lastTs of everyone live on the app
+const PRESENCE_TIMEOUT=16000;    // > 3 missed 5s presence beats
+
 // media / webrtc
 let localStream=null, pc=null, micOn=true, camOn=true;
 let partnerInRoom=false, pendingIce=[], reqOfferTimer=null, helloTimer=null, callConnected=false;
@@ -460,20 +466,41 @@ async function ensureMedia(){
 
 function connectBroker(onReady){
   client=mqtt.connect('wss://broker.emqx.io:8084/mqtt',{clientId:'polypal_'+cid,clean:true,reconnectPeriod:2000});
-  client.on('connect',()=>{document.getElementById('connDot').classList.remove('off');onReady&&onReady();onReady=null;});
+  client.on('connect',()=>{
+    document.getElementById('connDot').classList.remove('off');
+    client.subscribe(presenceTopic);   // (re)subscribe on connect AND reconnect
+    pubPresence();                      // announce ourselves right away
+    onReady&&onReady();onReady=null;
+  });
   client.on('reconnect',()=>document.getElementById('connDot').classList.add('off'));
   client.on('close',()=>document.getElementById('connDot').classList.add('off'));
   client.on('message',(t,payload)=>{
     let m;try{m=JSON.parse(payload.toString());}catch{return;}
     if(m.cid===cid)return;
-    if(m.cid===partner)lastPartnerBeat=Date.now();   // any packet = proof of life
+    if(m.cid===partner)lastPartnerBeat=Date.now();   // any packet (incl. presence) = proof of life
+    if(t===presenceTopic){handlePresence(m);return;}
     if(t===lobbyTopic)handleLobby(m); else handleRoom(m);
   });
   setInterval(()=>{if(topic)pub({type:'beat'});},5000);
+  setInterval(pubPresence,5000);     // app-wide heartbeat, independent of room
   setInterval(prune,4000);
+  setInterval(prunePresence,4000);
   setInterval(partnerWatch,3000);
-  window.addEventListener('beforeunload',()=>{if(topic)pub({type:'bye'});});
+  window.addEventListener('beforeunload',()=>{if(topic)pub({type:'bye'});pubPresence('leaving');});
 }
+function pubPresence(type){if(client&&client.connected)client.publish(presenceTopic,JSON.stringify({type:type||'here',cid,name:me.name}));}
+function handlePresence(m){
+  if(m.type==='leaving'){if(online.delete(m.cid))updateCount();return;}
+  const isNew=!online.has(m.cid);
+  online.set(m.cid,Date.now());
+  if(isNew){
+    updateCount();
+    // Greet a genuine newcomer back so their count includes us immediately
+    // (one round-trip instead of waiting up to 5s). 'ack' never re-acks → no storm.
+    if(m.type==='here')pubPresence('ack');
+  }
+}
+function prunePresence(){const now=Date.now();let ch=false;for(const[k,v]of online){if(now-v>PRESENCE_TIMEOUT){online.delete(k);ch=true;}}if(ch)updateCount();}
 
 function pub(obj){if(client&&client.connected&&topic){
   // Signalling packets (voice SDP/ICE, presence) ride QoS1 so a single dropped
@@ -628,7 +655,8 @@ function negotiate(){
 }
 function touch(m){peers.set(m.cid,{name:m.name,last:Date.now()});updateCount();}
 function prune(){const now=Date.now();let ch=false;for(const[k,v]of peers){if(now-v.last>13000){peers.delete(k);ch=true;}}if(ch)updateCount();}
-function updateCount(){document.getElementById('peerCount').textContent=peers.size+1;}
+// Badge shows everyone live on the app (global presence), +1 for ourselves.
+function updateCount(){document.getElementById('peerCount').textContent=online.size+1;}
 
 function onPartnerLeft(m){
   if(m&&m.name)sysMsg(`${m.name} left`);
